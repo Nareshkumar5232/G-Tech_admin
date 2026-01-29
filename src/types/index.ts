@@ -17,6 +17,7 @@ export interface Product {
   specs: string[];
   description: string;
   featured: boolean;
+  cashOnDelivery?: boolean;
   createdAt: string;
   updatedAt: string;
 }

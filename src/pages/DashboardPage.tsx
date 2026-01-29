@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Package,
@@ -10,10 +11,28 @@ import {
 } from 'lucide-react';
 import { getDashboardStats, getOrders } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
+import type { DashboardStats } from '@/types';
 
 export function DashboardPage() {
-  const stats = getDashboardStats();
-  const recentOrders = getOrders().slice(0, 5);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalRevenue: 0,
+    totalProducts: 0,
+    lowStockItems: 0,
+    deliveredToday: 0
+  });
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const dashboardStats = await getDashboardStats();
+      setStats(dashboardStats);
+      const orders = await getOrders();
+      setRecentOrders(orders.slice(0, 5));
+    };
+    fetchData();
+  }, []);
 
   const statCards = [
     {
@@ -149,12 +168,12 @@ export function DashboardPage() {
                   <p className="font-bold text-slate-900">{formatCurrency(order.totalPrice)}</p>
                   <span
                     className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold mt-0.5 ${order.status === 'delivered'
-                        ? 'bg-green-100 text-green-700'
-                        : order.status === 'pending'
-                          ? 'bg-amber-100 text-amber-700'
-                          : order.status === 'shipped'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-slate-100 text-slate-700'
+                      ? 'bg-green-100 text-green-700'
+                      : order.status === 'pending'
+                        ? 'bg-amber-100 text-amber-700'
+                        : order.status === 'shipped'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-slate-100 text-slate-700'
                       }`}
                   >
                     {order.status.charAt(0).toUpperCase() + order.status.slice(1)}

@@ -21,6 +21,7 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
     specs: [''],
     description: '',
     featured: false,
+    cashOnDelivery: false,
   });
 
   useEffect(() => {
@@ -36,18 +37,19 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
         specs: product.specs,
         description: product.description,
         featured: product.featured,
+        cashOnDelivery: product.cashOnDelivery ?? false,
       });
     }
   }, [product]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (product) {
-      updateProduct(product.id, formData);
+      await updateProduct(product.id, formData);
       toast.success('Product updated successfully');
     } else {
-      addProduct(formData);
+      await addProduct(formData);
       toast.success('Product added successfully');
     }
     onClose();
@@ -162,6 +164,19 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
             />
             <label htmlFor="featured" className="text-sm font-medium text-gray-700">
               Mark as Featured
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="cod"
+              checked={formData.cashOnDelivery}
+              onChange={(e) => setFormData({ ...formData, cashOnDelivery: e.target.checked })}
+              className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+            />
+            <label htmlFor="cod" className="text-sm font-medium text-gray-700">
+              Cash on Delivery Available
             </label>
           </div>
 

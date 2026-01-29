@@ -14,30 +14,27 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Simulate network delay for better UX
-    setTimeout(() => {
-      if (!email || !password) {
-        setError('Please enter both email and password');
-        setLoading(false);
-        return;
-      }
-
-      const admin = loginAdmin(email, password);
-
-      if (admin) {
-        toast.success('Welcome back, Admin!');
-        onLoginSuccess();
-      } else {
-        setError('Invalid credentials. Use admin@gtech.com / admin123');
-      }
-
+    if (!email || !password) {
+      setError('Please enter both email and password');
       setLoading(false);
-    }, 800);
+      return;
+    }
+
+    const admin = await loginAdmin(email, password);
+
+    if (admin) {
+      toast.success('Welcome back, Admin!');
+      onLoginSuccess();
+    } else {
+      setError('Invalid credentials. Please check your email and password.');
+    }
+
+    setLoading(false);
   };
 
   return (

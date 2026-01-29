@@ -1,149 +1,185 @@
 import type { Admin, Product, Order, DashboardStats } from '@/types';
+import axios from 'axios';
 
-// Mock admin data
-const ADMIN_EMAIL = 'admin@gtech.com';
-const ADMIN_PASSWORD = 'admin123';
+const API_URL = 'http://localhost:5000/api';
+const STORAGE_KEYS = {
+  ADMIN: 'gtech_admin_user',
+  TOKEN: 'gtech_admin_token',
+};
 
-let currentAdmin: Admin | null = null;
+// Helper to get auth header
+const getAuthHeader = () => {
+  const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
-export function loginAdmin(email: string, password: string): Admin | null {
-  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-    currentAdmin = {
-      id: 'admin-1',
-      email: ADMIN_EMAIL,
-      name: 'G-Tech Admin',
-      role: 'super-admin',
-    };
-    localStorage.setItem('admin', JSON.stringify(currentAdmin));
-    return currentAdmin;
+// --- Auth Functions ---
+
+export async function loginAdmin(email: string, password: string): Promise<Admin | null> {
+  try {
+    // Current backend might not have separate admin login, but we can reuse login or check role
+    const res = await axios.post(`${API_URL}/auth/login`, { mail: email, password });
+    if (res.data.token && res.data.user) {
+      // Check if user is admin
+      if (res.data.user.role === 'admin' || res.data.user.role === 'super-admin') {
+        localStorage.setItem(STORAGE_KEYS.TOKEN, res.data.token);
+        const admin: Admin = {
+          id: res.data.user.id || res.data.user._id,
+          email: res.data.user.email || res.data.user.mail,
+          name: res.data.user.name,
+          role: res.data.user.role
+        };
+        localStorage.setItem(STORAGE_KEYS.ADMIN, JSON.stringify(admin));
+        return admin;
+      } else {
+        console.error("User is not an admin");
+        return null;
+      }
+    }
+  } catch (error) {
+    console.error("Admin Login failed:", error);
   }
   return null;
 }
 
 export function logoutAdmin(): void {
-  currentAdmin = null;
-  localStorage.removeItem('admin');
+  localStorage.removeItem(STORAGE_KEYS.ADMIN);
+  localStorage.removeItem(STORAGE_KEYS.TOKEN);
 }
 
 export function getCurrentAdmin(): Admin | null {
-  if (currentAdmin) return currentAdmin;
-  
-  const stored = localStorage.getItem('admin');
-  if (stored) {
-    currentAdmin = JSON.parse(stored);
-    return currentAdmin;
+  const stored = localStorage.getItem(STORAGE_KEYS.ADMIN);
+  return stored ? JSON.parse(stored) : null;
+}
+
+// --- Product Functions ---
+
+export async function getProducts(): Promise<Product[]> {
+  try {
+    const res = await axios.get(`${API_URL}/product`, { headers: getAuthHeader() });
+    if (!res.data || !res.data.products) return [];
+    return res.data.products.map((p: any) => ({
+      ...p,
+      id: p._id,
+      // Ensure fields match Product interface
+      images: p.images || [],
+      specs: p.specs || [],
+      stock: p.stock || 0,
+      featured: p.featured || false,
+    }));
+  } catch (error) {
+    console.error("Fetch products failed:", error);
+    return [];
+  }
+}
+
+export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product | null> {
+  try {
+    const res = await axios.post(`${API_URL}/product/create`, product, { headers: getAuthHeader() });
+    if (res.data.product) {
+      const p = res.data.product;
+      return {
+        ...p,
+        id: p._id,
+        images: p.images || [],
+        specs: p.specs || [],
+      };
+    }
+  } catch (error) {
+    console.error("Add product failed:", error);
   }
   return null;
 }
 
-// Mock products data
-const mockProducts: Product[] = [
-  {
-    id: 'prod-1',
-    name: 'Dell XPS 15',
-    brand: 'Dell',
-    category: 'New Laptops',
-    condition: 'New',
-    price: 125000,
-    stock: 5,
-    images: ['https://images.unsplash.com/photo-1593642632823-8f785ba67e45'],
-    specs: ['Intel Core i7-13700H', '16GB RAM', '512GB SSD', '15.6" FHD Display'],
-    description: 'High-performance laptop for professionals',
-    featured: true,
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-  },
-  // Add more mock products as needed
-];
-
-let products = [...mockProducts];
-
-export function getProducts(): Product[] {
-  return products;
+export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+  try {
+    const res = await axios.put(`${API_URL}/product/update/${id}`, updates, { headers: getAuthHeader() });
+    if (res.data.product) {
+      const p = res.data.product;
+      return {
+        ...p,
+        id: p._id,
+        images: p.images || [],
+        specs: p.specs || [],
+      };
+    }
+  } catch (error) {
+    console.error("Update product failed:", error);
+  }
+  return null;
 }
 
-export function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Product {
-  const newProduct: Product = {
-    ...product,
-    id: `prod-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  products.push(newProduct);
-  return newProduct;
+export async function deleteProduct(id: string): Promise<boolean> {
+  try {
+    await axios.delete(`${API_URL}/product/delete/${id}`, { headers: getAuthHeader() });
+    return true;
+  } catch (error) {
+    console.error("Delete product failed:", error);
+    return false;
+  }
 }
 
-export function updateProduct(id: string, updates: Partial<Product>): Product | null {
-  const index = products.findIndex(p => p.id === id);
-  if (index === -1) return null;
-  
-  products[index] = {
-    ...products[index],
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
-  return products[index];
+// --- Order Functions ---
+
+export async function getOrders(): Promise<Order[]> {
+  try {
+    const res = await axios.get(`${API_URL}/orders/allorders`, { headers: getAuthHeader() });
+    return res.data.map((o: any) => ({
+      id: o._id,
+      orderNumber: o._id, // Using ID as number for now
+      userId: o.user,
+      userName: '', // Backend needs to populate this
+      userEmail: '',
+      userPhone: '',
+      product: o.items?.[0]?.product || {}, // Shim for single product view
+      quantity: o.items?.[0]?.quantity || 0,
+      totalPrice: o.totalAmount,
+      status: o.status.toLowerCase(), // Normalize status
+      shippingAddress: {
+        street: o.address, // Shim address string to object
+        city: '', state: '', zipCode: '', country: ''
+      },
+      trackingNumber: o.trackingId,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt || o.createdAt,
+      deliveredAt: o.activeDate
+    }));
+  } catch (error) {
+    console.error("Fetch orders failed:", error);
+    return [];
+  }
 }
 
-export function deleteProduct(id: string): boolean {
-  const index = products.findIndex(p => p.id === id);
-  if (index === -1) return false;
-  products.splice(index, 1);
-  return true;
-}
-
-// Mock orders data
-const mockOrders: Order[] = [
-  {
-    id: 'order-1',
-    orderNumber: 'ORD-2024-001',
-    userId: 'user-1',
-    userName: 'John Doe',
-    userEmail: 'john@example.com',
-    userPhone: '+91 9876543210',
-    product: mockProducts[0],
-    quantity: 1,
-    totalPrice: 125000,
-    status: 'pending',
-    shippingAddress: {
-      street: '123 MG Road',
-      city: 'Chennai',
-      state: 'Tamil Nadu',
-      zipCode: '600001',
-      country: 'India',
-    },
-    createdAt: '2024-01-20T14:30:00Z',
-    updatedAt: '2024-01-20T14:30:00Z',
-  },
-];
-
-let orders = [...mockOrders];
-
-export function getOrders(): Order[] {
-  return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}
-
-export function updateOrderStatus(
+export async function updateOrderStatus(
   id: string,
   status: Order['status'],
   trackingNumber?: string,
   cancelReason?: string
-): Order | null {
-  const index = orders.findIndex(o => o.id === id);
-  if (index === -1) return null;
-  
-  orders[index] = {
-    ...orders[index],
-    status,
-    trackingNumber,
-    cancelReason,
-    updatedAt: new Date().toISOString(),
-    deliveredAt: status === 'delivered' ? new Date().toISOString() : orders[index].deliveredAt,
-  };
-  return orders[index];
+): Promise<Order | null> {
+  try {
+    const payload = {
+      orderId: id,
+      status: status.charAt(0).toUpperCase() + status.slice(1), // Capitalize for backend
+      trackingId: trackingNumber
+    };
+    const res = await axios.put(`${API_URL}/orders/updatestatus`, payload, { headers: getAuthHeader() });
+    if (res.data.message === "Status Updated") {
+      // Return a mock updated order or fetch it again
+      // For now, simple return true/null logic or shim response
+      return { id, status } as any;
+    }
+  } catch (error) {
+    console.error("Update order status failed:", error);
+  }
+  return null;
 }
 
-export function getDashboardStats(): DashboardStats {
+export async function getDashboardStats(): Promise<DashboardStats> {
+  // Can implement a dedicated endpoint or aggregate on client
+  // For now, fetch orders and aggregation on client
+  const orders = await getOrders();
+  const products = await getProducts();
+
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const totalRevenue = orders
@@ -151,12 +187,12 @@ export function getDashboardStats(): DashboardStats {
     .reduce((sum, o) => sum + o.totalPrice, 0);
   const totalProducts = products.length;
   const lowStockItems = products.filter(p => p.stock < 5).length;
-  
+
   const today = new Date().toDateString();
   const deliveredToday = orders.filter(
     o => o.deliveredAt && new Date(o.deliveredAt).toDateString() === today
   ).length;
-  
+
   return {
     totalOrders,
     pendingOrders,

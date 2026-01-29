@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { getProducts, deleteProduct } from '@/lib/store';
@@ -8,20 +8,30 @@ import { ProductDialog } from '@/components/ProductDialog';
 import type { Product } from '@/types';
 
 export function ProductsPage() {
-  const [products, setProducts] = useState(getProducts());
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const fetchProducts = async () => {
+    const fetchedProducts = await getProducts();
+    setProducts(fetchedProducts || []);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      if (deleteProduct(id)) {
-        setProducts(getProducts());
+      const success = await deleteProduct(id);
+      if (success) {
+        await fetchProducts();
         toast.success('Product deleted successfully');
       }
     }
@@ -37,10 +47,10 @@ export function ProductsPage() {
     setDialogOpen(true);
   };
 
-  const handleDialogClose = () => {
+  const handleDialogClose = async () => {
     setDialogOpen(false);
     setEditingProduct(null);
-    setProducts(getProducts());
+    await fetchProducts();
   };
 
   return (
@@ -95,9 +105,8 @@ export function ProductsPage() {
                   No Image
                 </div>
               )}
-              <span className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${
-                product.condition === 'New' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-              }`}>
+              <span className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${product.condition === 'New' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                }`}>
                 {product.condition}
               </span>
             </div>

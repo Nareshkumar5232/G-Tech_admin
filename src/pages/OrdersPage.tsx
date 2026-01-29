@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Eye } from 'lucide-react';
 import { getOrders, updateOrderStatus } from '@/lib/store';
@@ -7,19 +7,28 @@ import { toast } from 'sonner';
 import type { Order } from '@/types';
 
 export function OrdersPage() {
-  const [orders, setOrders] = useState(getOrders());
+  const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  const fetchOrders = async () => {
+    const fetchedOrders = await getOrders();
+    setOrders(fetchedOrders || []);
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const filteredOrders = orders.filter((order) =>
     order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
+  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
     const trackingNumber = newStatus === 'shipped' ? `TRK${Date.now()}` : undefined;
-    updateOrderStatus(orderId, newStatus, trackingNumber);
-    setOrders(getOrders());
+    await updateOrderStatus(orderId, newStatus, trackingNumber);
+    await fetchOrders();
     toast.success(`Order status updated to ${newStatus}`);
   };
 
