@@ -153,8 +153,7 @@ export async function getOrders(): Promise<Order[]> {
 export async function updateOrderStatus(
   id: string,
   status: Order['status'],
-  trackingNumber?: string,
-  cancelReason?: string
+  trackingNumber?: string
 ): Promise<Order | null> {
   try {
     const payload = {

@@ -1,9 +1,19 @@
 import { getOrders } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
 import { Package, Truck, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { Order } from '@/types';
 
 export function DeliveryPage() {
-  const orders = getOrders().filter(o => ['confirmed', 'shipped', 'delivered'].includes(o.status));
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const allOrders = await getOrders();
+      setOrders(allOrders.filter(o => ['confirmed', 'shipped', 'delivered'].includes(o.status)));
+    };
+    fetchOrders();
+  }, []);
 
   return (
     <div className="space-y-4 sm:space-y-6">
