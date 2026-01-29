@@ -9,8 +9,8 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('reach2ias@gmail.com');
+  const [password, setPassword] = useState('abdul@samad');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -142,7 +142,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
           <div className="mt-8 pt-6 border-t border-white/5 text-center">
             <p className="text-xs text-slate-500">
-              Contact admin for access credentials
+              Demo Access: <span className="text-slate-300 font-mono">reach2ias@gmail.com</span> / <span className="text-slate-300 font-mono">abdul@samad</span>
             </p>
           </div>
         </div>
