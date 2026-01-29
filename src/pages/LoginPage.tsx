@@ -82,7 +82,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-white placeholder-slate-500 transition-all"
-                  placeholder="usedlapzc@gmail.com"
+                  placeholder="admin@example.com"
                 />
               </div>
             </div>
@@ -142,7 +142,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
           <div className="mt-8 pt-6 border-t border-white/5 text-center">
             <p className="text-xs text-slate-500">
-              Demo Access: <span className="text-slate-300 font-mono">usedlapzc@gmail.com</span> / <span className="text-slate-300 font-mono">admin123</span>
+              Contact admin for access credentials
             </p>
           </div>
         </div>
