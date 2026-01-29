@@ -1,7 +1,7 @@
 import type { Admin, Product, Order, DashboardStats } from '@/types';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const STORAGE_KEYS = {
   ADMIN: 'gtech_admin_user',
   TOKEN: 'gtech_admin_token',
