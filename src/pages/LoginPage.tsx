@@ -57,11 +57,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           {/* Logo Section */}
           <div className="flex flex-col items-center mb-10">
             <div className="relative mb-6 group-hover:scale-105 transition-transform duration-500">
-              <div className="absolute inset-0 bg-red-500 blur-xl opacity-30 rounded-full" />
+              <div className="absolute inset-0 bg-blue-500 blur-xl opacity-30 rounded-full" />
               <div className="relative w-16 h-16 bg-gradient-to-br from-gray-900 to-black rounded-2xl border border-white/10 flex items-center justify-center shadow-2xl">
-                <span className="text-3xl font-bold text-white font-display">G</span>
+                <span className="text-3xl font-bold text-white font-display">S</span>
               </div>
-              <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center border-2 border-gray-900">
+              <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center border-2 border-gray-900">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               </div>
             </div>
@@ -81,8 +81,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-black/40 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent text-slate-200 placeholder:text-slate-600 transition-all hover:bg-black/60"
-                  placeholder="admin@gtech.com"
+                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-white placeholder-slate-500 transition-all"
+                  placeholder="usedlapzc@gmail.com"
                 />
               </div>
             </div>
@@ -142,7 +142,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
           <div className="mt-8 pt-6 border-t border-white/5 text-center">
             <p className="text-xs text-slate-500">
-              Demo Access: <span className="text-slate-300 font-mono">admin@gtech.com</span> / <span className="text-slate-300 font-mono">admin123</span>
+              Demo Access: <span className="text-slate-300 font-mono">usedlapzc@gmail.com</span> / <span className="text-slate-300 font-mono">admin123</span>
             </p>
           </div>
         </div>

@@ -121,9 +121,9 @@ export function Sidebar({
             >
               <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 bg-red-600 rounded-xl blur opacity-40 group-hover:opacity-60 transition-opacity" />
-                <div className="relative bg-gradient-to-br from-red-600 to-red-800 p-2.5 rounded-xl border border-red-500/30 group-hover:scale-105 transition-transform">
+                <div className="relative bg-gradient-to-br from-blue-600 to-blue-800 p-2.5 rounded-xl border border-blue-500/30 group-hover:scale-105 transition-transform">
                   <div className="w-8 h-8 flex items-center justify-center">
-                    <span className="text-2xl font-bold font-display">G</span>
+                    <span className="text-2xl font-bold font-display">S</span>
                   </div>
                 </div>
               </div>
@@ -137,9 +137,9 @@ export function Sidebar({
                     className="text-left"
                   >
                     <div className="text-lg font-bold font-display tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                      G-TECH
+                      SATURN
                     </div>
-                    <div className="text-[10px] uppercase font-medium tracking-widest text-red-400">Admin Panel</div>
+                    <div className="text-[10px] uppercase font-medium tracking-widest text-blue-400">Admin Panel</div>
                   </motion.div>
                 )}
               </AnimatePresence>

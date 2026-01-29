@@ -1,6 +1,16 @@
-# G-Tech Admin Panel
+# Saturn Systems Admin Panel
 
-Admin dashboard for G-TECH INNOVATION laptop store management.
+Admin dashboard for Saturn Systems laptop store management.
+
+**Contact Information:**
+- 📧 Email: usedlapzc@gmail.com
+- 📱 Phone (India): +91 93427 983 44
+- 📱 Phone (Dubai): +91 555 530 513
+- 🏪 Shop: 044-3339 5138
+- 🏢 Office: 044-3154 4571
+- 🌐 Website: www.saturnsystems.in
+- 📍 Address: Bignani Konil Street, Chennai - 600 094
+- 📍 Office: #1/21 Indiranagar, 1st Street, Choolaimedu
 
 ## Features
 
@@ -47,7 +57,7 @@ npm run preview
 
 ## Default Admin Credentials
 
-- **Email:** admin@gtech.com
+- **Email:** usedlapzc@gmail.com
 - **Password:** admin123
 
 ## Project Structure
@@ -95,4 +105,5 @@ npm run build
 
 ## License
 
-Copyright © 2024 G-TECH INNOVATION
+Copyright © 2026 Saturn Systems
+Chennai, India
