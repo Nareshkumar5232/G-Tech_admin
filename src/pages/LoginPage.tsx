@@ -26,18 +26,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
 
     try {
-      // --- FIX STARTS HERE ---
-      // Check for demo credentials locally to bypass Network Error
-      if (email === 'reach2ias@gmail.com' && password === 'abdul@samad') {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        toast.success('Welcome back, Admin!');
-        onLoginSuccess();
-        setLoading(false);
-        return;
-      }
-      // --- FIX ENDS HERE ---
 
       // Normal flow for other inputs
       const admin = await loginAdmin(email, password);
