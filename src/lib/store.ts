@@ -132,26 +132,51 @@ export async function deleteProduct(id: string): Promise<boolean> {
 export async function getOrders(): Promise<Order[]> {
   try {
     const res = await axios.get(`${API_URL}/orders/allorders`, { headers: getAuthHeader() });
-    return res.data.map((o: any) => ({
-      id: o._id,
-      orderNumber: o._id, // Using ID as number for now
-      userId: o.user,
-      userName: '', // Backend needs to populate this
-      userEmail: '',
-      userPhone: '',
-      product: o.items?.[0]?.product || {}, // Shim for single product view
-      quantity: o.items?.[0]?.quantity || 0,
-      totalPrice: o.totalAmount,
-      status: o.status.toLowerCase(), // Normalize status
-      shippingAddress: {
-        street: o.address, // Shim address string to object
-        city: '', state: '', zipCode: '', country: ''
-      },
-      trackingNumber: o.trackingId,
-      createdAt: o.createdAt,
-      updatedAt: o.updatedAt || o.createdAt,
-      deliveredAt: o.activeDate
-    }));
+
+    // Debug log
+    console.log("Admin All Orders:", res.data);
+
+    if (!Array.isArray(res.data)) return [];
+
+    return res.data.map((o: any) => {
+      // Address handling
+      let shippingAddress = {
+        street: typeof o.address === 'string' ? o.address : (o.address?.addressLine1 || 'Unknown'),
+        city: typeof o.address === 'string' ? '' : (o.address?.city || ''),
+        state: typeof o.address === 'string' ? '' : (o.address?.state || ''),
+        zipCode: typeof o.address === 'string' ? '' : (o.address?.pincode || ''),
+        country: 'India'
+      };
+
+      // Items/Product handling
+      // Backend returns 'items' array. Admin dashboard might expect one main product or we summarize.
+      // Based on type shim: product: o.items?.[0]?.product || {}
+
+      const firstItem = o.items && o.items.length > 0 ? o.items[0] : null;
+      const productData = firstItem && firstItem.product ? {
+        name: firstItem.product.name,
+        price: firstItem.product.price,
+        // ... helper fields if needed
+      } : { name: 'Unknown Product', price: 0 };
+
+      return {
+        id: o._id,
+        orderNumber: o._id,
+        userId: o.user?._id || o.user || '',
+        userName: o.user?.name || 'Unknown User',
+        userEmail: o.user?.mail || o.user?.email || '',
+        userPhone: '',
+        product: productData,
+        quantity: firstItem ? firstItem.quantity : 0,
+        totalPrice: o.totalAmount || 0,
+        status: o.status ? o.status.toLowerCase() : 'pending',
+        shippingAddress: shippingAddress,
+        trackingNumber: o.trackingId || '',
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt || o.createdAt,
+        deliveredAt: o.activeDate
+      };
+    });
   } catch (error) {
     console.error("Fetch orders failed:", error);
     return [];
