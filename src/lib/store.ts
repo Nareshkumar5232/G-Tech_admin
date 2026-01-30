@@ -40,10 +40,13 @@ export async function loginAdmin(email: string, password: string): Promise<Admin
     if (error.response) {
       console.error("Admin Login failed - Status:", error.response.status);
       console.error("Admin Login failed - Data:", error.response.data);
+      throw new Error(error.response.data?.message || `Login failed: ${error.response.status}`);
     } else {
       console.error("Admin Login failed:", error.message);
+      throw new Error(error.message || "Network Error or Server Unreachable");
     }
   }
+  // If we get here (e.g. not admin), return null or throw?
   return null;
 }
 

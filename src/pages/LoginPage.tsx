@@ -25,13 +25,17 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       return;
     }
 
-    const admin = await loginAdmin(email, password);
-
-    if (admin) {
-      toast.success('Welcome back, Admin!');
-      onLoginSuccess();
-    } else {
-      setError('Invalid credentials. Please check your email and password.');
+    try {
+      const admin = await loginAdmin(email, password);
+      if (admin) {
+        toast.success('Welcome back, Admin!');
+        onLoginSuccess();
+      } else {
+        // Only if null is returned without throw (should only happen if role mismatch or silent fail)
+        setError('Login failed. Please check console for details.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     }
 
     setLoading(false);
