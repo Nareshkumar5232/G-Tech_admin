@@ -124,26 +124,46 @@ export async function deleteProduct(id: string): Promise<boolean> {
 export async function getOrders(): Promise<Order[]> {
   try {
     const res = await axios.get(`${API_URL}/orders/allorders`, { headers: getAuthHeader() });
-    return res.data.map((o: any) => ({
-      id: o._id,
-      orderNumber: o._id, // Using ID as number for now
-      userId: o.user,
-      userName: '', // Backend needs to populate this
-      userEmail: '',
-      userPhone: '',
-      product: o.items?.[0]?.product || {}, // Shim for single product view
-      quantity: o.items?.[0]?.quantity || 0,
-      totalPrice: o.totalAmount,
-      status: o.status.toLowerCase(), // Normalize status
-      shippingAddress: {
-        street: o.address, // Shim address string to object
-        city: '', state: '', zipCode: '', country: ''
-      },
-      trackingNumber: o.trackingId,
-      createdAt: o.createdAt,
-      updatedAt: o.updatedAt || o.createdAt,
-      deliveredAt: o.activeDate
-    }));
+    return res.data.map((o: any) => {
+      const productData = o.items?.[0]?.product || {};
+      const product: Product = {
+        id: productData._id || productData.id || '',
+        name: productData.name || 'Unknown Product',
+        brand: productData.brand || 'Other',
+        category: productData.category || 'Accessories',
+        condition: productData.condition || 'New',
+        price: productData.price || 0,
+        stock: productData.stock || 0,
+        images: productData.images || [],
+        specs: productData.specs || [],
+        description: productData.description || '',
+        featured: productData.featured || false,
+        cashOnDelivery: productData.cashOnDelivery,
+        createdAt: productData.createdAt || o.createdAt,
+        updatedAt: productData.updatedAt || o.updatedAt || o.createdAt,
+      };
+      
+      return {
+        id: o._id,
+        orderNumber: o._id, // Using ID as number for now
+        userId: o.user,
+        userName: '', // Backend needs to populate this
+        userEmail: '',
+        userPhone: '',
+        product,
+        quantity: o.items?.[0]?.quantity || 0,
+        totalPrice: o.totalAmount,
+        status: o.status.toLowerCase(), // Normalize status
+        shippingAddress: {
+          street: o.address, // Shim address string to object
+          city: '', state: '', zipCode: '', country: ''
+        },
+        trackingNumber: o.trackingId,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt || o.createdAt,
+        deliveredAt: o.activeDate
+      };
+    });
   } catch (error) {
     console.error("Fetch orders failed:", error);
     return [];
