@@ -65,10 +65,12 @@ export function getCurrentAdmin(): Admin | null {
 export async function getProducts(): Promise<Product[]> {
   try {
     const res = await axios.get(`${API_URL}/product`, { headers: getAuthHeader() });
-    if (!res.data || !res.data.products) return [];
-    return res.data.products.map((p: any) => ({
+    // Handle both { products: [...] } and direct array response
+    const products = Array.isArray(res.data) ? res.data : (res.data?.products || []);
+    if (!products || products.length === 0) return [];
+    return products.map((p: any) => ({
       ...p,
-      id: p._id,
+      id: p._id || p.id,
       // Ensure fields match Product interface
       images: p.images || [],
       specs: p.specs || [],
