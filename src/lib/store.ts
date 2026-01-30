@@ -17,36 +17,42 @@ const getAuthHeader = () => {
 
 export async function loginAdmin(email: string, password: string): Promise<Admin | null> {
   try {
+    console.log("🔐 Admin: Attempting login for:", email);
     // Current backend might not have separate admin login, but we can reuse login or check role
     const res = await axios.post(`${API_URL}/auth/login`, { mail: email, password });
+    console.log("✅ Admin Login Response:", res.data);
+    
     if (res.data.token && res.data.user) {
-      // Check if user is admin
-      if (res.data.user.role === 'admin' || res.data.user.role === 'super-admin') {
+      // Check if user is admin (including admin override)
+      const userRole = res.data.user.role;
+      const userId = res.data.user.id || res.data.user._id;
+      
+      // Allow admin override ID or admin role
+      if (userRole === 'admin' || userRole === 'super-admin' || userId === 'admin-override-id') {
         localStorage.setItem(STORAGE_KEYS.TOKEN, res.data.token);
         const admin: Admin = {
-          id: res.data.user.id || res.data.user._id,
+          id: userId,
           email: res.data.user.email || res.data.user.mail,
-          name: res.data.user.name,
-          role: res.data.user.role
+          name: res.data.user.name || 'Admin',
+          role: userRole || 'admin'
         };
         localStorage.setItem(STORAGE_KEYS.ADMIN, JSON.stringify(admin));
+        console.log("✅ Admin login successful");
         return admin;
       } else {
-        console.error("User is not an admin");
-        return null;
+        console.error("❌ User is not an admin. Role:", userRole);
+        throw new Error("Access denied. Admin privileges required.");
       }
     }
   } catch (error: any) {
+    console.error("❌ Admin Login failed:", error);
     if (error.response) {
-      console.error("Admin Login failed - Status:", error.response.status);
-      console.error("Admin Login failed - Data:", error.response.data);
+      console.error("Error response:", error.response.status, error.response.data);
       throw new Error(error.response.data?.message || `Login failed: ${error.response.status}`);
     } else {
-      console.error("Admin Login failed:", error.message);
       throw new Error(error.message || "Network Error or Server Unreachable");
     }
   }
-  // If we get here (e.g. not admin), return null or throw?
   return null;
 }
 
@@ -64,10 +70,18 @@ export function getCurrentAdmin(): Admin | null {
 
 export async function getProducts(): Promise<Product[]> {
   try {
+    console.log("📦 Admin: Fetching products...");
     const res = await axios.get(`${API_URL}/product`, { headers: getAuthHeader() });
+    console.log("✅ Admin Products Response:", res.data);
+    
     // Handle both { products: [...] } and direct array response
     const products = Array.isArray(res.data) ? res.data : (res.data?.products || []);
-    if (!products || products.length === 0) return [];
+    if (!products || products.length === 0) {
+      console.warn("⚠️ No products found");
+      return [];
+    }
+    
+    console.log(`✅ Found ${products.length} products`);
     return products.map((p: any) => ({
       ...p,
       id: p._id || p.id,
@@ -77,15 +91,20 @@ export async function getProducts(): Promise<Product[]> {
       stock: p.stock || 0,
       featured: p.featured || false,
     }));
-  } catch (error) {
-    console.error("Fetch products failed:", error);
+  } catch (error: any) {
+    console.error("❌ Fetch products failed:", error);
+    if (error.response) {
+      console.error("Error response:", error.response.status, error.response.data);
+    }
     return [];
   }
 }
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product | null> {
   try {
+    console.log("➕ Admin: Adding new product...");
     const res = await axios.post(`${API_URL}/product/create`, product, { headers: getAuthHeader() });
+    console.log("✅ Product added successfully:", res.data);
     if (res.data.product) {
       const p = res.data.product;
       return {
@@ -95,15 +114,22 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
         specs: p.specs || [],
       };
     }
-  } catch (error) {
-    console.error("Add product failed:", error);
+  } catch (error: any) {
+    console.error("❌ Add product failed:", error);
+    if (error.response) {
+      console.error("Error response:", error.response.status, error.response.data);
+      throw new Error(error.response.data?.message || "Failed to add product");
+    }
+    throw new Error(error.message || "Network error");
   }
   return null;
 }
 
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
   try {
+    console.log("✏️ Admin: Updating product:", id);
     const res = await axios.put(`${API_URL}/product/update/${id}`, updates, { headers: getAuthHeader() });
+    console.log("✅ Product updated successfully:", res.data);
     if (res.data.product) {
       const p = res.data.product;
       return {
@@ -113,19 +139,30 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
         specs: p.specs || [],
       };
     }
-  } catch (error) {
-    console.error("Update product failed:", error);
+  } catch (error: any) {
+    console.error("❌ Update product failed:", error);
+    if (error.response) {
+      console.error("Error response:", error.response.status, error.response.data);
+      throw new Error(error.response.data?.message || "Failed to update product");
+    }
+    throw new Error(error.message || "Network error");
   }
   return null;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
   try {
+    console.log("🗑️ Admin: Deleting product:", id);
     await axios.delete(`${API_URL}/product/delete/${id}`, { headers: getAuthHeader() });
+    console.log("✅ Product deleted successfully");
     return true;
-  } catch (error) {
-    console.error("Delete product failed:", error);
-    return false;
+  } catch (error: any) {
+    console.error("❌ Delete product failed:", error);
+    if (error.response) {
+      console.error("Error response:", error.response.status, error.response.data);
+      throw new Error(error.response.data?.message || "Failed to delete product");
+    }
+    throw new Error(error.message || "Network error");
   }
 }
 
@@ -133,12 +170,53 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 export async function getOrders(): Promise<Order[]> {
   try {
-    const res = await axios.get(`${API_URL}/orders/allorders`, { headers: getAuthHeader() });
+    const authHeader = getAuthHeader();
+    console.log("📋 Admin: Fetching all orders...");
+    console.log("🔐 Auth header present:", !!authHeader.Authorization);
+    
+    const res = await axios.get(`${API_URL}/orders/allorders`, { 
+      headers: authHeader 
+    });
 
     // Debug log
-    console.log("Admin All Orders:", res.data);
+    console.log("✅ Admin Orders Response Status:", res.status);
+    console.log("✅ Admin Orders Data:", res.data);
 
-    if (!Array.isArray(res.data)) return [];
+    // Handle different response formats
+    if (!res.data) {
+      console.warn("No data in response");
+      return [];
+    }
+
+    // If response is an error message
+    if (res.data.error || (res.data.message && !Array.isArray(res.data))) {
+      console.error("Error from backend:", res.data);
+      throw new Error(res.data.error || res.data.message || "Failed to fetch orders");
+    }
+
+    if (!Array.isArray(res.data)) {
+      console.warn("⚠️ Response is not an array:", typeof res.data, res.data);
+      return [];
+    }
+
+    if (res.data.length === 0) {
+      console.log("ℹ️ No orders found in database");
+      return [];
+    }
+
+    console.log(`✅ Found ${res.data.length} orders`);
+
+    // Helper function to normalize status
+    const normalizeStatus = (status: string): Order['status'] => {
+      if (!status) return 'pending';
+      const lower = status.toLowerCase();
+      if (lower.includes('payment pending') || lower === 'pending') return 'pending';
+      if (lower.includes('confirmed') || lower === 'confirmed') return 'confirmed';
+      if (lower.includes('shipped') || lower === 'shipped') return 'shipped';
+      if (lower.includes('delivered') || lower === 'delivered') return 'delivered';
+      if (lower.includes('cancelled') || lower.includes('canceled')) return 'cancelled';
+      return 'pending';
+    };
 
     return res.data.map((o: any) => {
       // Address handling
@@ -171,7 +249,7 @@ export async function getOrders(): Promise<Order[]> {
         product: productData,
         quantity: firstItem ? firstItem.quantity : 0,
         totalPrice: o.totalAmount || 0,
-        status: o.status ? o.status.toLowerCase() : 'pending',
+        status: normalizeStatus(o.status),
         shippingAddress: shippingAddress,
         trackingNumber: o.trackingId || '',
         createdAt: o.createdAt,
@@ -179,8 +257,14 @@ export async function getOrders(): Promise<Order[]> {
         deliveredAt: o.activeDate
       };
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Fetch orders failed:", error);
+    if (error.response) {
+      console.error("Error response:", error.response.status, error.response.data);
+      if (error.response.status === 401) {
+        console.error("Authentication failed - admin token may be invalid");
+      }
+    }
     return [];
   }
 }
@@ -191,19 +275,37 @@ export async function updateOrderStatus(
   trackingNumber?: string
 ): Promise<Order | null> {
   try {
+    console.log(`🔄 Admin: Updating order ${id} status to ${status}`);
+    
+    // Map frontend status to backend format
+    const statusMap: Record<Order['status'], string> = {
+      'pending': 'Pending',
+      'confirmed': 'Confirmed',
+      'shipped': 'Shipped',
+      'delivered': 'Delivered',
+      'cancelled': 'Cancelled'
+    };
+    
     const payload = {
       orderId: id,
-      status: status.charAt(0).toUpperCase() + status.slice(1), // Capitalize for backend
+      status: statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1),
       trackingId: trackingNumber
     };
+    
+    console.log("📦 Update payload:", payload);
     const res = await axios.put(`${API_URL}/orders/updatestatus`, payload, { headers: getAuthHeader() });
-    if (res.data.message === "Status Updated") {
-      // Return a mock updated order or fetch it again
-      // For now, simple return true/null logic or shim response
+    console.log("✅ Order status updated:", res.data);
+    
+    if (res.data.message === "Status Updated" || res.data.order) {
       return { id, status } as any;
     }
-  } catch (error) {
-    console.error("Update order status failed:", error);
+  } catch (error: any) {
+    console.error("❌ Update order status failed:", error);
+    if (error.response) {
+      console.error("Error response:", error.response.status, error.response.data);
+      throw new Error(error.response.data?.message || "Failed to update order status");
+    }
+    throw new Error(error.message || "Network error");
   }
   return null;
 }
