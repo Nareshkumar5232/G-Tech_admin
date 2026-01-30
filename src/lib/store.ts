@@ -36,8 +36,13 @@ export async function loginAdmin(email: string, password: string): Promise<Admin
         return null;
       }
     }
-  } catch (error) {
-    console.error("Admin Login failed:", error);
+  } catch (error: any) {
+    if (error.response) {
+      console.error("Admin Login failed - Status:", error.response.status);
+      console.error("Admin Login failed - Data:", error.response.data);
+    } else {
+      console.error("Admin Login failed:", error.message);
+    }
   }
   return null;
 }
