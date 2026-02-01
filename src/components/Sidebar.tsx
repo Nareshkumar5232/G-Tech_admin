@@ -83,8 +83,6 @@ export function Sidebar({
     { label: 'Dashboard', page: 'dashboard', icon: LayoutDashboard },
     { label: 'Products', page: 'products', icon: Package },
     { label: 'Orders', page: 'orders', icon: ShoppingCart },
-    { label: 'Delivery', page: 'delivery', icon: Truck },
-    { label: 'Customers', page: 'customers', icon: Users },
   ];
 
   const collapsedWidth = 80;
@@ -120,11 +118,13 @@ export function Sidebar({
               className="flex items-center gap-3 group w-full overflow-hidden"
             >
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 bg-red-600 rounded-xl blur opacity-40 group-hover:opacity-60 transition-opacity" />
-                <div className="relative bg-gradient-to-br from-blue-600 to-blue-800 p-2.5 rounded-xl border border-blue-500/30 group-hover:scale-105 transition-transform">
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    <span className="text-2xl font-bold font-display">S</span>
-                  </div>
+                <div className="absolute inset-0 bg-white/20 rounded-xl blur opacity-40 group-hover:opacity-60 transition-opacity" />
+                <div className="relative bg-white p-2 rounded-xl border border-gray-200/30 group-hover:scale-105 transition-transform">
+                  <img 
+                    src="/src/Saturn laptops/ChatGPT Image Jan 29, 2026, 12_07_26 PM.png" 
+                    alt="Saturn Logo" 
+                    className="w-12 h-12 object-contain"
+                  />
                 </div>
               </div>
               
@@ -136,7 +136,7 @@ export function Sidebar({
                     exit={{ opacity: 0, x: -10 }}
                     className="text-left"
                   >
-                    <div className="text-lg font-bold font-display tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    <div className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
                       SATURN
                     </div>
                     <div className="text-[10px] uppercase font-medium tracking-widest text-blue-400">Admin Panel</div>

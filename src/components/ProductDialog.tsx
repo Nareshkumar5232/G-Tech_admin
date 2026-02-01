@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Upload, Trash2, Plus } from 'lucide-react';
 import { addProduct, updateProduct } from '@/lib/store';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
@@ -45,14 +45,67 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Filter out empty image URLs
+    const cleanedData = {
+      ...formData,
+      images: formData.images.filter(img => img.trim() !== ''),
+    };
+
+    // Ensure at least one image
+    if (cleanedData.images.length === 0) {
+      toast.error('Please add at least one image');
+      return;
+    }
+
     if (product) {
-      await updateProduct(product.id, formData);
+      await updateProduct(product.id, cleanedData);
       toast.success('Product updated successfully');
     } else {
-      await addProduct(formData);
+      await addProduct(cleanedData);
       toast.success('Product added successfully');
     }
     onClose();
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageUrl = reader.result as string;
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images.filter(img => img !== ''), imageUrl, ''],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  const handleImageUrlChange = (index: number, value: string) => {
+    const newImages = [...formData.images];
+    newImages[index] = value;
+    
+    // Add empty field if last field is filled
+    if (index === newImages.length - 1 && value.trim() !== '') {
+      newImages.push('');
+    }
+    
+    setFormData({ ...formData, images: newImages });
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = formData.images.filter((_, i) => i !== index);
+    // Ensure at least one empty field
+    if (newImages.every(img => img !== '')) {
+      newImages.push('');
+    }
+    setFormData({ ...formData, images: newImages });
   };
 
   return (
@@ -152,6 +205,75 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
+            
+            {/* Image Upload Button */}
+            <div className="mb-3">
+              <label className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg transition-all cursor-pointer w-fit">
+                <Upload className="w-4 h-4" />
+                <span>Upload Images</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Upload from device or enter image URLs below</p>
+            </div>
+
+            {/* Image Previews */}
+            {formData.images.some(img => img !== '') && (
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                {formData.images
+                  .filter(img => img !== '')
+                  .map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image}
+                        alt={`Product ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Image URL Inputs */}
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-600">Or enter image URLs:</label>
+              {formData.images.map((image, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    value={image}
+                    onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                  />
+                  {image && (
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
