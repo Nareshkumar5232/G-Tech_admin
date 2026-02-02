@@ -120,7 +120,7 @@ export function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 font-display tracking-tight">Dashboard Overview</h1>
           <p className="text-slate-500 mt-1">
-            Welcome back to G-TECH Admin Panel
+            Welcome to SATURN SERVICES
             {lastUpdated && (
               <span className="text-xs text-slate-400 ml-2">
                 (Last updated: {lastUpdated.toLocaleTimeString()})
