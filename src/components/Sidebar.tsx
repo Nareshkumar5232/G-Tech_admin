@@ -119,7 +119,7 @@ export function Sidebar({
                 <div className="absolute inset-0 bg-white/20 rounded-xl blur opacity-40 group-hover:opacity-60 transition-opacity" />
                 <div className="relative bg-white p-2 rounded-xl border border-gray-200/30 group-hover:scale-105 transition-transform">
                   <img 
-                    src="/src/Saturn laptops/ChatGPT Image Jan 29, 2026, 12_07_26 PM.png" 
+                    src="/logo.png" 
                     alt="Saturn Logo" 
                     className="w-12 h-12 object-contain"
                   />
