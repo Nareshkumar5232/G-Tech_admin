@@ -22,12 +22,12 @@ export async function loginAdmin(email: string, password: string): Promise<Admin
     // Current backend might not have separate admin login, but we can reuse login or check role
     const res = await axios.post(`${API_URL}/auth/login`, { mail: email, password });
     console.log("✅ Admin Login Response:", res.data);
-    
+
     if (res.data.token && res.data.user) {
       // Check if user is admin (including admin override)
       const userRole = res.data.user.role;
       const userId = res.data.user.id || res.data.user._id;
-      
+
       // Allow admin override ID or admin role
       if (userRole === 'admin' || userRole === 'super-admin' || userId === 'admin-override-id') {
         localStorage.setItem(STORAGE_KEYS.TOKEN, res.data.token);
@@ -74,14 +74,14 @@ export async function getProducts(): Promise<Product[]> {
     console.log("📦 Admin: Fetching products...");
     const res = await axios.get(`${API_URL}/product`, { headers: getAuthHeader() });
     console.log("✅ Admin Products Response:", res.data);
-    
+
     // Handle both { products: [...] } and direct array response
     const products = Array.isArray(res.data) ? res.data : (res.data?.products || []);
     if (!products || products.length === 0) {
       console.warn("⚠️ No products found");
       return [];
     }
-    
+
     console.log(`✅ Found ${products.length} products`);
     return products.map((p: any) => ({
       ...p,
@@ -106,11 +106,11 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
     console.log("➕ Admin: Adding new product...");
     const res = await axios.post(`${API_URL}/product/create`, product, { headers: getAuthHeader() });
     console.log("✅ Product added successfully:", res.data);
-    
+
     // Invalidate products and dashboard cache
     appCache.invalidate(CACHE_KEYS.PRODUCTS);
     appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
-    
+
     if (res.data.product) {
       const p = res.data.product;
       return {
@@ -136,11 +136,11 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
     console.log("✏️ Admin: Updating product:", id);
     const res = await axios.put(`${API_URL}/product/update/${id}`, updates, { headers: getAuthHeader() });
     console.log("✅ Product updated successfully:", res.data);
-    
+
     // Invalidate products and dashboard cache
     appCache.invalidate(CACHE_KEYS.PRODUCTS);
     appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
-    
+
     if (res.data.product) {
       const p = res.data.product;
       return {
@@ -164,13 +164,15 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 export async function deleteProduct(id: string): Promise<boolean> {
   try {
     console.log("🗑️ Admin: Deleting product:", id);
-    await axios.delete(`${API_URL}/product/delete/${id}`, { headers: getAuthHeader() });
+    const headers = getAuthHeader();
+    console.log("🔑 Auth Headers:", headers);
+    await axios.delete(`${API_URL}/product/delete/${id}`, { headers });
     console.log("✅ Product deleted successfully");
-    
+
     // Invalidate products and dashboard cache
     appCache.invalidate(CACHE_KEYS.PRODUCTS);
     appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
-    
+
     return true;
   } catch (error: any) {
     console.error("❌ Delete product failed:", error);
@@ -189,9 +191,9 @@ export async function getOrders(): Promise<Order[]> {
     const authHeader = getAuthHeader();
     console.log("📋 Admin: Fetching all orders...");
     console.log("🔐 Auth header present:", !!authHeader.Authorization);
-    
-    const res = await axios.get(`${API_URL}/orders/allorders`, { 
-      headers: authHeader 
+
+    const res = await axios.get(`${API_URL}/orders/allorders`, {
+      headers: authHeader
     });
 
     // Debug log
@@ -248,7 +250,7 @@ export async function getOrders(): Promise<Order[]> {
       // Backend returns 'items' array. Admin dashboard might expect one main product or we summarize.
       const firstItem = o.items && o.items.length > 0 ? o.items[0] : null;
       const rawProduct = firstItem?.product || {};
-      
+
       const product: Product = {
         id: rawProduct._id || rawProduct.id || '',
         name: rawProduct.name || 'Unknown Product',
@@ -303,7 +305,7 @@ export async function updateOrderStatus(
 ): Promise<Order | null> {
   try {
     console.log(`🔄 Admin: Updating order ${id} status to ${status}`);
-    
+
     // Map frontend status to backend format
     const statusMap: Record<Order['status'], string> = {
       'pending': 'Pending',
@@ -312,21 +314,21 @@ export async function updateOrderStatus(
       'delivered': 'Delivered',
       'cancelled': 'Cancelled'
     };
-    
+
     const payload = {
       orderId: id,
       status: statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1),
       trackingId: trackingNumber
     };
-    
+
     console.log("📦 Update payload:", payload);
     const res = await axios.put(`${API_URL}/orders/updatestatus`, payload, { headers: getAuthHeader() });
     console.log("✅ Order status updated:", res.data);
-    
+
     // Invalidate orders and dashboard cache
     appCache.invalidate(CACHE_KEYS.ORDERS);
     appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
-    
+
     if (res.data.message === "Status Updated" || res.data.order) {
       return { id, status } as any;
     }
