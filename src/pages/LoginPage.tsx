@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { loginAdmin } from '@/lib/store';
 import { toast } from 'sonner';
+import SaturnLogo from '@/Saturn laptops/ChatGPT Image Jan 29, 2026, 12_07_26 PM.png';
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
@@ -86,8 +87,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <div className="flex flex-col items-center mb-10">
             <div className="relative mb-6 group-hover:scale-105 transition-transform duration-500">
               <div className="absolute inset-0 bg-blue-500 blur-xl opacity-30 rounded-full" />
-              <div className="relative w-16 h-16 bg-gradient-to-br from-gray-900 to-black rounded-2xl border border-white/10 flex items-center justify-center shadow-2xl">
-                <span className="text-3xl font-bold text-white font-display">S</span>
+              <div className="relative w-20 h-20 flex items-center justify-center">
+                <img src={SaturnLogo} alt="Saturn Services Logo" className="w-full h-full object-contain" />
               </div>
               <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center border-2 border-gray-900">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
