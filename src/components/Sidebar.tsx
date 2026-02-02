@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Truck,
-  Users,
   LogOut,
   ChevronLeft,
   ChevronRight,

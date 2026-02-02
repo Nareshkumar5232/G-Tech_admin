@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Trash2, Plus } from 'lucide-react';
+import { X, Upload, Trash2 } from 'lucide-react';
 import { addProduct, updateProduct } from '@/lib/store';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
