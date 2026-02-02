@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Eye, Filter, X } from 'lucide-react';
+import { Search, Eye, Filter, X, RefreshCw, Loader2 } from 'lucide-react';
 import { getOrders, updateOrderStatus } from '@/lib/store';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Pagination } from '@/components/Pagination';
+import { usePaginatedData } from '@/lib/hooks';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache';
 import type { Order } from '@/types';
 
 export function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
@@ -15,30 +17,46 @@ export function OrdersPage() {
   const [maxAmount, setMaxAmount] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchOrders = async () => {
-    const fetchedOrders = await getOrders();
-    setOrders(fetchedOrders || []);
-  };
+  // Use paginated data hook with caching
+  const {
+    data: orders,
+    paginatedData,
+    pagination,
+    controls,
+    isLoading,
+    refresh,
+    lastUpdated,
+  } = usePaginatedData<Order>(
+    useCallback(() => getOrders(), []),
+    {
+      cacheKey: CACHE_KEYS.ORDERS,
+      cacheTTL: CACHE_TTL.MEDIUM,
+      initialPageSize: 10,
+    }
+  );
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  // Filter orders based on all criteria
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      // Search filter
+      const matchesSearch = order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.userName.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      
+      // Amount filter
+      const min = minAmount ? parseFloat(minAmount) : 0;
+      const max = maxAmount ? parseFloat(maxAmount) : Infinity;
+      const matchesAmount = order.totalPrice >= min && order.totalPrice <= max;
+      
+      return matchesSearch && matchesStatus && matchesAmount;
+    });
+  }, [orders, searchQuery, statusFilter, minAmount, maxAmount]);
 
-  const filteredOrders = orders.filter((order) => {
-    // Search filter
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.userName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Status filter
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    
-    // Amount filter
-    const min = minAmount ? parseFloat(minAmount) : 0;
-    const max = maxAmount ? parseFloat(maxAmount) : Infinity;
-    const matchesAmount = order.totalPrice >= min && order.totalPrice <= max;
-    
-    return matchesSearch && matchesStatus && matchesAmount;
-  });
+  // Display orders - use filtered if any filter is active, otherwise paginated
+  const hasActiveFilters = statusFilter !== 'all' || minAmount !== '' || maxAmount !== '' || searchQuery.trim() !== '';
+  const displayOrders = hasActiveFilters ? filteredOrders : paginatedData;
 
   const clearFilters = () => {
     setStatusFilter('all');
@@ -47,12 +65,10 @@ export function OrdersPage() {
     setSearchQuery('');
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || minAmount !== '' || maxAmount !== '';
-
   const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
     const trackingNumber = newStatus === 'shipped' ? `TRK${Date.now()}` : undefined;
     await updateOrderStatus(orderId, newStatus, trackingNumber);
-    await fetchOrders();
+    await refresh(true); // Force refresh after status change
     toast.success(`Order status updated to ${newStatus}`);
   };
 
@@ -69,9 +85,26 @@ export function OrdersPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
-        <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and track customer orders</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orders</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
+            Manage and track customer orders
+            {lastUpdated && (
+              <span className="text-xs text-gray-400 ml-2">
+                (Last updated: {lastUpdated.toLocaleTimeString()})
+              </span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => refresh(true)}
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       {/* Search */}
@@ -167,24 +200,33 @@ export function OrdersPage() {
         )}
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+          <span className="ml-2 text-gray-600">Loading orders...</span>
+        </div>
+      )}
+
       {/* Orders Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredOrders.map((order, index) => (
-                <motion.tr
+      {!isLoading && (
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {displayOrders.map((order, index) => (
+                  <motion.tr
                   key={order.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -235,10 +277,36 @@ export function OrdersPage() {
                   </td>
                 </motion.tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Empty state */}
+          {displayOrders.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No orders found</p>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Pagination - only show when not filtering */}
+      {!isLoading && !hasActiveFilters && orders.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md p-4">
+          <Pagination
+            pagination={pagination}
+            controls={controls}
+            pageSizeOptions={[10, 20, 50, 100]}
+          />
+        </div>
+      )}
+
+      {/* Filter results count */}
+      {hasActiveFilters && (
+        <div className="text-sm text-gray-600">
+          Found {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} matching your filters
+        </div>
+      )}
 
       {/* Order Details Modal */}
       {selectedOrder && (

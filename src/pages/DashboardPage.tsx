@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Package,
@@ -8,36 +8,59 @@ import {
   CheckCircle,
   IndianRupee,
   MoreVertical,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { getDashboardStats, getOrders } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
-import type { DashboardStats } from '@/types';
+import { useCachedData } from '@/lib/hooks';
+import { CACHE_KEYS, CACHE_TTL } from '@/lib/cache';
+import type { DashboardStats, Order } from '@/types';
 
 export function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
+  // Use cached data for dashboard stats
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    refresh: refreshStats,
+    lastUpdated,
+  } = useCachedData<DashboardStats>(
+    useCallback(() => getDashboardStats(), []),
+    CACHE_KEYS.DASHBOARD_STATS,
+    CACHE_TTL.SHORT // Dashboard stats refresh more frequently
+  );
+
+  // Use cached data for recent orders
+  const {
+    data: allOrders,
+    isLoading: ordersLoading,
+    refresh: refreshOrders,
+  } = useCachedData<Order[]>(
+    useCallback(() => getOrders(), []),
+    CACHE_KEYS.ORDERS,
+    CACHE_TTL.MEDIUM
+  );
+
+  const recentOrders = allOrders?.slice(0, 5) || [];
+  const isLoading = statsLoading || ordersLoading;
+
+  const handleRefresh = async () => {
+    await Promise.all([refreshStats(true), refreshOrders(true)]);
+  };
+
+  const currentStats = stats || {
     totalOrders: 0,
     pendingOrders: 0,
     totalRevenue: 0,
     totalProducts: 0,
     lowStockItems: 0,
     deliveredToday: 0
-  });
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const dashboardStats = await getDashboardStats();
-      setStats(dashboardStats);
-      const orders = await getOrders();
-      setRecentOrders(orders.slice(0, 5));
-    };
-    fetchData();
-  }, []);
+  };
 
   const statCards = [
     {
       title: 'Total Orders',
-      value: stats.totalOrders,
+      value: currentStats.totalOrders,
       icon: ShoppingCart,
       color: 'from-blue-500 to-blue-600',
       textColor: 'text-blue-600',
@@ -46,7 +69,7 @@ export function DashboardPage() {
     },
     {
       title: 'Pending Orders',
-      value: stats.pendingOrders,
+      value: currentStats.pendingOrders,
       icon: AlertTriangle,
       color: 'from-amber-500 to-amber-600',
       textColor: 'text-amber-600',
@@ -55,7 +78,7 @@ export function DashboardPage() {
     },
     {
       title: 'Total Revenue',
-      value: formatCurrency(stats.totalRevenue),
+      value: formatCurrency(currentStats.totalRevenue),
       icon: IndianRupee,
       color: 'from-emerald-500 to-emerald-600',
       textColor: 'text-emerald-600',
@@ -64,16 +87,16 @@ export function DashboardPage() {
     },
     {
       title: 'Total Products',
-      value: stats.totalProducts,
+      value: currentStats.totalProducts,
       icon: Package,
       color: 'from-purple-500 to-purple-600',
       textColor: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      change: `${stats.lowStockItems} low stock`,
+      change: `${currentStats.lowStockItems} low stock`,
     },
     {
       title: 'Delivered Today',
-      value: stats.deliveredToday,
+      value: currentStats.deliveredToday,
       icon: CheckCircle,
       color: 'from-teal-500 to-teal-600',
       textColor: 'text-teal-600',
@@ -93,10 +116,35 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 font-display tracking-tight">Dashboard Overview</h1>
-        <p className="text-slate-500 mt-1">Welcome back to G-TECH Admin Panel</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 font-display tracking-tight">Dashboard Overview</h1>
+          <p className="text-slate-500 mt-1">
+            Welcome back to G-TECH Admin Panel
+            {lastUpdated && (
+              <span className="text-xs text-slate-400 ml-2">
+                (Last updated: {lastUpdated.toLocaleTimeString()})
+              </span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
+
+      {/* Loading State */}
+      {isLoading && !stats && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+          <span className="ml-2 text-gray-600">Loading dashboard...</span>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

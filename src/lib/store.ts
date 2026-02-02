@@ -1,5 +1,6 @@
 import type { Admin, Product, Order, DashboardStats } from '@/types';
 import axios from 'axios';
+import { appCache, CACHE_KEYS } from './cache';
 
 const API_URL = 'https://g-tech-backend-1.onrender.com/api';
 const STORAGE_KEYS = {
@@ -105,6 +106,11 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
     console.log("➕ Admin: Adding new product...");
     const res = await axios.post(`${API_URL}/product/create`, product, { headers: getAuthHeader() });
     console.log("✅ Product added successfully:", res.data);
+    
+    // Invalidate products and dashboard cache
+    appCache.invalidate(CACHE_KEYS.PRODUCTS);
+    appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
+    
     if (res.data.product) {
       const p = res.data.product;
       return {
@@ -130,6 +136,11 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
     console.log("✏️ Admin: Updating product:", id);
     const res = await axios.put(`${API_URL}/product/update/${id}`, updates, { headers: getAuthHeader() });
     console.log("✅ Product updated successfully:", res.data);
+    
+    // Invalidate products and dashboard cache
+    appCache.invalidate(CACHE_KEYS.PRODUCTS);
+    appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
+    
     if (res.data.product) {
       const p = res.data.product;
       return {
@@ -155,6 +166,11 @@ export async function deleteProduct(id: string): Promise<boolean> {
     console.log("🗑️ Admin: Deleting product:", id);
     await axios.delete(`${API_URL}/product/delete/${id}`, { headers: getAuthHeader() });
     console.log("✅ Product deleted successfully");
+    
+    // Invalidate products and dashboard cache
+    appCache.invalidate(CACHE_KEYS.PRODUCTS);
+    appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
+    
     return true;
   } catch (error: any) {
     console.error("❌ Delete product failed:", error);
@@ -306,6 +322,10 @@ export async function updateOrderStatus(
     console.log("📦 Update payload:", payload);
     const res = await axios.put(`${API_URL}/orders/updatestatus`, payload, { headers: getAuthHeader() });
     console.log("✅ Order status updated:", res.data);
+    
+    // Invalidate orders and dashboard cache
+    appCache.invalidate(CACHE_KEYS.ORDERS);
+    appCache.invalidate(CACHE_KEYS.DASHBOARD_STATS);
     
     if (res.data.message === "Status Updated" || res.data.order) {
       return { id, status } as any;
