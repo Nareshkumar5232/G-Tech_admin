@@ -90,12 +90,12 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
   const handleImageUrlChange = (index: number, value: string) => {
     const newImages = [...formData.images];
     newImages[index] = value;
-    
+
     // Add empty field if last field is filled
     if (index === newImages.length - 1 && value.trim() !== '') {
       newImages.push('');
     }
-    
+
     setFormData({ ...formData, images: newImages });
   };
 
@@ -153,7 +153,7 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as Product['category'] })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               >
-                {['New Laptops', 'Used Laptops', 'Accessories', 'Networking & CCTV'].map((cat) => (
+                {['New Laptops', 'Used Laptops', 'Accessories', 'Networking & CCTV', 'TV & Monitors'].map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -209,7 +209,7 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
-            
+
             {/* Image Upload Button */}
             <div className="mb-3">
               <label className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg transition-all cursor-pointer w-fit">

@@ -53,10 +53,15 @@ export function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      const success = await deleteProduct(id);
-      if (success) {
-        await refresh(true); // Force refresh after delete
-        toast.success('Product deleted successfully');
+      try {
+        const success = await deleteProduct(id);
+        if (success) {
+          await refresh(true); // Force refresh after delete
+          toast.success('Product deleted successfully');
+        }
+      } catch (error: any) {
+        console.error('Failed to delete product:', error);
+        toast.error(error.message || 'Failed to delete product');
       }
     }
   };
@@ -147,54 +152,54 @@ export function ProductsPage() {
                 {product.images[0] ? (
                   <img
                     src={product.images[0]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  No Image
-                </div>
-              )}
-              <span className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${product.condition === 'New' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                }`}>
-                {product.condition}
-              </span>
-            </div>
-
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900 text-lg mb-1">{product.name}</h3>
-              <p className="text-sm text-gray-600 mb-2">{product.brand} • {product.category}</p>
-              <p className="text-2xl font-bold text-gray-900 mb-3">{formatCurrency(product.price)}</p>
-
-              <div className="flex items-center justify-between text-sm mb-4">
-                <span className={`font-medium ${product.stock < 5 ? 'text-red-600' : 'text-green-600'}`}>
-                  Stock: {product.stock}
-                </span>
-                {product.featured && (
-                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    Featured
-                  </span>
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    No Image
+                  </div>
                 )}
+                <span className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${product.condition === 'New' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                  {product.condition}
+                </span>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(product)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className="flex items-center justify-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              <div className="p-4">
+                <h3 className="font-semibold text-gray-900 text-lg mb-1">{product.name}</h3>
+                <p className="text-sm text-gray-600 mb-2">{product.brand} • {product.category}</p>
+                <p className="text-2xl font-bold text-gray-900 mb-3">{formatCurrency(product.price)}</p>
+
+                <div className="flex items-center justify-between text-sm mb-4">
+                  <span className={`font-medium ${product.stock < 5 ? 'text-red-600' : 'text-green-600'}`}>
+                    Stock: {product.stock}
+                  </span>
+                  {product.featured && (
+                    <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                      Featured
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="flex items-center justify-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))}
         </div>
       )}
 
