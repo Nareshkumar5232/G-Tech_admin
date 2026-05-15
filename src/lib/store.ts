@@ -104,7 +104,12 @@ export async function getProducts(): Promise<Product[]> {
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product | null> {
   try {
     console.log("➕ Admin: Adding new product...");
-    const res = await axios.post(`${API_URL}/product/create`, product, { headers: getAuthHeader() });
+    // Add redundant 'image' field for compatibility with older frontends/backends
+    const payload = {
+      ...product,
+      image: product.images && product.images.length > 0 ? product.images[0] : ''
+    };
+    const res = await axios.post(`${API_URL}/product/create`, payload, { headers: getAuthHeader() });
     console.log("✅ Product added successfully:", res.data);
 
     // Invalidate products and dashboard cache
@@ -116,7 +121,7 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
       return {
         ...p,
         id: p._id,
-        images: p.images || [],
+        images: p.images || (p.image ? [p.image] : []),
         specs: p.specs || [],
       };
     }
@@ -134,7 +139,12 @@ export async function addProduct(product: Omit<Product, 'id' | 'createdAt' | 'up
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
   try {
     console.log("✏️ Admin: Updating product:", id);
-    const res = await axios.put(`${API_URL}/product/update/${id}`, updates, { headers: getAuthHeader() });
+    // Add redundant 'image' field for compatibility
+    const payload = {
+      ...updates,
+      image: updates.images && updates.images.length > 0 ? updates.images[0] : (updates.images ? '' : undefined)
+    };
+    const res = await axios.put(`${API_URL}/product/update/${id}`, payload, { headers: getAuthHeader() });
     console.log("✅ Product updated successfully:", res.data);
 
     // Invalidate products and dashboard cache
@@ -146,7 +156,7 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
       return {
         ...p,
         id: p._id,
-        images: p.images || [],
+        images: p.images || (p.image ? [p.image] : []),
         specs: p.specs || [],
       };
     }
@@ -249,17 +259,18 @@ export async function getOrders(): Promise<Order[]> {
       // Items/Product handling
       // Backend returns 'items' array. Admin dashboard might expect one main product or we summarize.
       const firstItem = o.items && o.items.length > 0 ? o.items[0] : null;
-      const rawProduct = firstItem?.product || {};
+      // Some orders might have product info directly in the item, or nested in 'product'
+      const rawProduct = firstItem?.product || firstItem || {};
 
       const product: Product = {
-        id: rawProduct._id || rawProduct.id || '',
-        name: rawProduct.name || 'Unknown Product',
+        id: rawProduct._id || rawProduct.id || rawProduct.productId || '',
+        name: rawProduct.name || rawProduct.productName || o.productName || o.product?.name || 'Unknown Product',
         brand: rawProduct.brand || 'Other',
         category: rawProduct.category || 'Accessories',
         condition: rawProduct.condition || 'New',
         price: rawProduct.price || 0,
         stock: rawProduct.stock || 0,
-        images: rawProduct.images || [],
+        images: rawProduct.images || (rawProduct.image ? [rawProduct.image] : []),
         specs: rawProduct.specs || [],
         description: rawProduct.description || '',
         featured: rawProduct.featured || false,

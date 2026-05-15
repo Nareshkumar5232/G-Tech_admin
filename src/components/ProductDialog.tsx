@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Trash2 } from 'lucide-react';
+import { X, Upload, Trash2, Loader2 } from 'lucide-react';
 import { addProduct, updateProduct } from '@/lib/store';
 import { toast } from 'sonner';
+import { compressImage } from '@/lib/utils';
 import type { Product } from '@/types';
 
 interface ProductDialogProps {
@@ -23,6 +24,8 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
     featured: false,
     cashOnDelivery: false,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -57,30 +60,47 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
       return;
     }
 
-    if (product) {
-      await updateProduct(product.id, cleanedData);
-      toast.success('Product updated successfully');
-    } else {
-      await addProduct(cleanedData);
-      toast.success('Product added successfully');
+    setIsSubmitting(true);
+    try {
+      if (product) {
+        await updateProduct(product.id, cleanedData);
+        toast.success('Product updated successfully');
+      } else {
+        await addProduct(cleanedData);
+        toast.success('Product added successfully');
+      }
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save product');
+    } finally {
+      setIsSubmitting(false);
     }
-    onClose();
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageUrl = reader.result as string;
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images.filter(img => img !== ''), imageUrl, ''],
-        }));
-      };
-      reader.readAsDataURL(file);
+    setIsCompressing(true);
+    const uploadPromises = Array.from(files).map((file) => {
+      return new Promise<void>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const rawUrl = reader.result as string;
+          // Compress image to speed up uploads
+          const compressedUrl = await compressImage(rawUrl);
+          setFormData((prev) => ({
+            ...prev,
+            images: [...prev.images.filter(img => img !== ''), compressedUrl, ''],
+          }));
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(uploadPromises).finally(() => {
+      setIsCompressing(false);
     });
 
     // Reset input
@@ -212,15 +232,16 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
 
             {/* Image Upload Button */}
             <div className="mb-3">
-              <label className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg transition-all cursor-pointer w-fit">
-                <Upload className="w-4 h-4" />
-                <span>Upload Images</span>
+              <label className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg transition-all cursor-pointer w-fit ${isCompressing ? 'opacity-50 pointer-events-none' : ''}`}>
+                {isCompressing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                <span>{isCompressing ? 'Compressing...' : 'Upload Images'}</span>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleImageUpload}
                   className="hidden"
+                  disabled={isCompressing}
                 />
               </label>
               <p className="text-xs text-gray-500 mt-1">Upload from device or enter image URLs below</p>
@@ -312,9 +333,11 @@ export function ProductDialog({ product, onClose }: ProductDialogProps) {
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg transition-all"
+              disabled={isSubmitting || isCompressing}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
             >
-              {product ? 'Update' : 'Add'} Product
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? 'Saving...' : product ? 'Update' : 'Add'} Product
             </button>
           </div>
         </form>
